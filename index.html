@@ -47,12 +47,28 @@ input:focus { border-color:var(--lime) }
 #overlay.show { display:flex }
 .small { color:var(--cyan);font-size:10px;letter-spacing:3px;font-weight:1000 }
 #overlay h2 { font-size:clamp(34px,9vw,48px);line-height:1;margin:12px 0;letter-spacing:-2px }
-#notice { position:absolute;z-index:3;top:44%;left:50%;transform:translate(-50%,-50%);font-size:clamp(24px,7vw,36px);font-weight:1000;color:var(--lime);text-shadow:0 3px 15px #000;pointer-events:none;opacity:0;white-space:nowrap }
+#notice { position:absolute;z-index:3;top:44%;left:50%;transform:translate(-50%,-50%);font-size:clamp(16px,4.5vw,24px);font-weight:900;color:var(--lime);text-shadow:0 2px 8px #000;pointer-events:none;opacity:0;white-space:nowrap;background:#11162dcc;border:1px solid #ffffff25;border-radius:10px;padding:7px 12px;max-width:90%;overflow:hidden;text-overflow:ellipsis }
 #notice.show { animation:pop .9s ease-out }
 @keyframes pop { 15% { opacity:1;transform:translate(-50%,-50%) scale(1.15) }70% { opacity:1 }100% { opacity:0;transform:translate(-50%,-75%) } }
 @media(max-height:650px) {
  h1 { font-size:38px;margin:8px }.hero { font-size:38px;margin:5px }p { margin:7px;font-size:12px }.best { margin-top:9px }.screen { padding:12px }label { margin:5px }
 }
+
+#designer { position:absolute;inset:0;z-index:6;display:none;overflow:auto;padding:18px 16px 24px;background:radial-gradient(ellipse at 50% 0%,#354582,#11162d 72%);text-align:left }
+#designer.active { display:block }
+.des-head { display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px }
+.des-head h2 { margin:0;font-size:27px;letter-spacing:-1px }
+.des-back { border:1px solid #ffffff55;border-radius:10px;background:#171f41;color:#fff;padding:10px 12px;font-weight:900 }
+.des-intro { margin:5px 0 14px;font-size:12px }
+.preview-wrap { background:#0d1229;border:1px solid #ffffff22;border-radius:16px;padding:8px;margin-bottom:14px }
+#preview { width:100%;height:190px;display:block;background:#177653;border-radius:10px }
+.des-grid { display:grid;grid-template-columns:1fr 1fr;gap:10px }
+.des-control { background:#171f41;border:1px solid #ffffff20;border-radius:12px;padding:10px;min-width:0 }
+.des-control label { display:block;margin:0 0 8px;font-size:10px;letter-spacing:1px }
+.des-control select,.des-control input[type="color"] { width:100%;height:40px;border-radius:8px;border:1px solid #58628e;background:#11162d;color:#fff;padding:6px }
+.des-control input[type="range"] { width:100%;accent-color:var(--lime) }
+.des-actions { display:flex;gap:9px;margin-top:14px }
+.des-actions button { flex:1 }
 </style>
 </head>
 <body>
@@ -93,9 +109,25 @@ input:focus { border-color:var(--lime) }
     <label for="name">YOUR FIRST NAME</label>
     <input id="name" maxlength="18" placeholder="Enter your name" autocomplete="given-name">
     <button class="primary" id="play">▶ KICK OFF</button>
+    <button class="primary" id="designOpen" style="margin-top:9px;background:#55edff;box-shadow:0 5px 0 #218b9b">✦ DESIGN YOUR PLAYERS</button>
     <div class="best">PERSONAL BEST<strong id="best">0 goals</strong></div>
   </section>
 
+
+  <section id="designer">
+    <div class="des-head"><h2>PLAYER LAB <span style="color:var(--lime)">✦</span></h2><button class="des-back" id="designBack">← BACK</button></div>
+    <p class="des-intro">Customize your team's kit, shorts, skin tone, hair and shirt number. Preview changes live and save them on this device.</p>
+    <div class="preview-wrap"><canvas id="preview" width="360" height="190"></canvas></div>
+    <div class="des-grid">
+      <div class="des-control"><label for="kitColor">YOUR KIT</label><input id="kitColor" type="color" value="#55edff"></div>
+      <div class="des-control"><label for="shortColor">SHORTS</label><input id="shortColor" type="color" value="#1476a2"></div>
+      <div class="des-control"><label for="skinColor">SKIN TONE</label><select id="skinColor"><option value="#f1c59d">Light</option><option value="#c98b64">Medium</option><option value="#8d563c">Deep</option><option value="#e1ad83">Warm</option></select></div>
+      <div class="des-control"><label for="hairColor">HAIR COLOUR</label><select id="hairColor"><option value="#302018">Dark brown</option><option value="#70452b">Brown</option><option value="#d4a64c">Blond</option><option value="#171923">Black</option><option value="#b84d32">Auburn</option></select></div>
+      <div class="des-control"><label for="hairStyle">HAIRCUT</label><select id="hairStyle"><option value="0">Classic</option><option value="1">Fringe</option><option value="2">Curly</option></select></div>
+      <div class="des-control"><label for="playerNumber">SHIRT NUMBER</label><input id="playerNumber" type="range" min="1" max="99" value="10"><div style="text-align:center;font-weight:900;color:var(--lime)" id="numberReadout">10</div></div>
+    </div>
+    <div class="des-actions"><button class="primary" id="designReset" style="margin-top:0;background:#fff;box-shadow:0 5px 0 #9ba2b8">RESET</button><button class="primary" id="designDone" style="margin-top:0">SAVE &amp; PLAY</button></div>
+  </section>
   <div id="overlay">
     <div class="small" id="overLabel">HALF TIME</div>
     <h2 id="overTitle">CHANGE ENDS!</h2>
@@ -173,14 +205,23 @@ function resize() {
 }
 window.addEventListener("resize",resize);
 
+let playerLook = {kit:"#55edff",shorts:"#1476a2",skin:"#f1c59d",hairColor:"#302018",hairStyle:0,number:10};
+try {
+  const savedLook=JSON.parse(localStorage.getItem("pocket-football-player-look")||"null");
+  if(savedLook) playerLook={...playerLook,...savedLook};
+} catch(e) {}
+
 function makePlayer(team,user,x,y,n) {
   return {
     team,user,n,x,y,vx:0,vy:0,
     r:user?12.5:11.5,
-    speed:W*(user?.55:.34),
+    speed:W*(user?.78:.34),
     tx:x,ty:y,face:team==="home"?0:Math.PI,
     kick:0,stamina:1,
-    hair:n%3,skinTone:["#f1c59d","#c98b64","#8d563c","#e1ad83"][n%4]
+    hair:n%3,skinTone:user?playerLook.skin:["#f1c59d","#c98b64","#8d563c","#e1ad83"][n%4],
+    customKit:user?playerLook.kit:null,customShorts:user?playerLook.shorts:null,
+    customHair:user?playerLook.hairColor:null,customHairStyle:user?playerLook.hairStyle:null,
+    customNumber:user?playerLook.number:null
   };
 }
 
@@ -251,7 +292,7 @@ function announce(text) {
   n.textContent=text;n.classList.remove("show");
   void n.offsetWidth;n.classList.add("show");
   clearTimeout(noticeTimer);
-  noticeTimer=setTimeout(()=>n.classList.remove("show"),950);
+  noticeTimer=setTimeout(()=>n.classList.remove("show"),650);
 }
 function showOverlay(label,title,text,button,fn) {
   $("overLabel").textContent=label;
@@ -327,7 +368,7 @@ function act(kind,angle=null,power=1) {
   const ownsBall=ball.owner===players.indexOf(p);
   if((kind==="shoot"||kind==="pass")&&!ownsBall) {
     p.tx=ball.x;p.ty=ball.y;
-    announce("WIN THE BALL FIRST!");
+    // No warning popup; use the shoot button after winning possession.
     return;
   }
   if(distance>p.r+ball.r+35&&!ownsBall) {
@@ -432,10 +473,11 @@ function update(dt) {
         p.tx+=W*.12*dt;
         clampTarget(p);
       } else if(!carrier) {
-        // Chase the loose ball if the player is not moving elsewhere.
-        if(Math.hypot(p.tx-p.x,p.ty-p.y)<10) {
-          p.tx=ball.x;p.ty=ball.y;
-        }
+        // Chase a loose ball decisively so the player can collect it.
+        p.tx=ball.x;p.ty=ball.y;
+      } else if(carrier.team==="away") {
+        // Press the opponent carrying the ball.
+        p.tx=carrier.x;p.ty=carrier.y;
       }
       moveTo(p,p.tx,p.ty,dt,p.speed);
     } else if(p.team==="home") {
@@ -477,19 +519,34 @@ function update(dt) {
     ball.vy*=Math.pow(.986,dt*60);
 
     // Nearest footballer collects the ball when it slows down.
-    if(Math.hypot(ball.vx,ball.vy)<W*.9) {
+    if(Math.hypot(ball.vx,ball.vy)<W*1.8) {
       let nearest=-1,min=Infinity;
       players.forEach((p,i)=>{
         const d=Math.hypot(p.x-ball.x,p.y-ball.y);
         if(d<min){min=d;nearest=i}
       });
-      if(nearest>=0&&min<players[nearest].r+ball.r+7) {
+      if(nearest>=0&&min<players[nearest].r+ball.r+18) {
         ball.owner=nearest;
       }
     }
   }
 
   carrier=ball.owner>=0?players[ball.owner]:null;
+
+  // User-controlled players can tackle rivals too; close contact can win possession.
+  if(carrier&&carrier.team==="away") {
+    for(let i=0;i<players.length;i++) {
+      const challenger=players[i];
+      if(!challenger.user)continue;
+      const d=Math.hypot(challenger.x-carrier.x,challenger.y-carrier.y);
+      if(d<challenger.r+carrier.r+9&&Math.random()<dt*2.8) {
+        ball.owner=i;carrier=challenger;
+        announce("BALL!");
+        sound(260,.07,"triangle",.045);
+        break;
+      }
+    }
+  }
 
   // Tackling: rivals attempt to steal the ball from nearby home players.
   if(carrier&&carrier.team==="home") {
@@ -501,7 +558,7 @@ function update(dt) {
         ball.owner=i;
         carrier=opponent;
         sound(120,.06,"triangle",.035);
-        announce("TACKLED!");
+        // Keep play moving without a persistent tackle message.
         break;
       }
     }
@@ -523,7 +580,7 @@ function update(dt) {
       const aimY=f.cy+(f.cy-carrier.y)*.30+(Math.random()-.5)*Math.min(52,H*.10);
       kickToward(f.left-25,aimY,W*(.78+.10*difficulty));
       kickSound();
-      announce("RIVALS SHOOT!");
+      // No extra text for routine opposition shots.
     } else if(Math.random()<dt*.10*difficulty) {
       // An occasional pass makes their attacks less predictable.
       const teammate=rivals.find(q=>q!==carrier&&q.x<carrier.x-W*.035);
@@ -552,11 +609,11 @@ function update(dt) {
     if(ball.vx<0 && ball.x<f.left+W*.075 && homeKeeper &&
        Math.abs(ball.y-homeKeeper.y)<homeKeeper.r+ball.r+8) {
       ball.x=f.left+W*.075;ball.vx=Math.abs(ball.vx)*.72;ball.vy+=(Math.random()-.5)*W*.35;
-      announce("SAVE!");
+      announce("SAVE");
     } else if(ball.vx>0 && ball.x>f.right-W*.075 && awayKeeper &&
        Math.abs(ball.y-awayKeeper.y)<awayKeeper.r+ball.r+8) {
       ball.x=f.right-W*.075;ball.vx=-Math.abs(ball.vx)*.72;ball.vy+=(Math.random()-.5)*W*.35;
-      announce("SAVE!");
+      announce("SAVE");
     }
   }
   if(ball.y<f.top+ball.r){ball.y=f.top+ball.r;ball.vy=Math.abs(ball.vy)*.8}
@@ -642,9 +699,10 @@ function drawPlayer(p) {
   ctx.translate(p.x,p.y);
 
   const homeTeam=p.team==="home";
-  const kit=homeTeam?C.cyan:C.pink;
-  const shorts=homeTeam?"#1476a2":"#a51e57";
+  const kit=p.customKit||(homeTeam?C.cyan:C.pink);
+  const shorts=p.customShorts||(homeTeam?"#1476a2":"#a51e57");
   const skin=p.skinTone;
+  const hairStyle=p.customHairStyle??p.hair;
   const r=p.r;
 
   // Small running cycle.
@@ -772,15 +830,15 @@ function drawPlayer(p) {
   ctx.fill();
 
   // Different haircuts.
-  ctx.fillStyle=["#302018","#251c19","#422b22"][p.hair];
-  if(p.hair===0) {
+  ctx.fillStyle=p.customHair||["#302018","#251c19","#422b22"][hairStyle];
+  if(hairStyle===0) {
     ctx.beginPath();
     ctx.arc(0,-r*.84,r*.30,Math.PI,Math.PI*2);
     ctx.lineTo(r*.28,-r*.77);
     ctx.lineTo(-r*.28,-r*.77);
     ctx.closePath();
     ctx.fill();
-  } else if(p.hair===1) {
+  } else if(hairStyle===1) {
     ctx.beginPath();
     ctx.ellipse(0,-r*.93,r*.30,r*.19,0,Math.PI,Math.PI*2);
     ctx.fill();
@@ -814,7 +872,7 @@ function drawPlayer(p) {
   ctx.font=`900 ${Math.max(6,r*.42)}px system-ui`;
   ctx.textAlign="center";
   ctx.textBaseline="middle";
-  ctx.fillText(String(p.n+1),0,-r*.05);
+  ctx.fillText(String(p.customNumber??(p.n+1)),0,-r*.05);
 
   ctx.restore();
 }
@@ -899,8 +957,13 @@ canvas.addEventListener("pointerup",e=>{
       act("move",angle);
     }
   } else {
-    // A tap moves the selected player; use the SHOOT button to attempt a shot.
-    p.tx=x;p.ty=y;clampTarget(p);
+    // Tapping near the ball commands a direct chase; other taps move the player.
+    if(Math.hypot(x-ball.x,y-ball.y)<Math.min(W,H)*.22) {
+      p.tx=ball.x;p.ty=ball.y;
+    } else {
+      p.tx=x;p.ty=y;
+    }
+    clampTarget(p);
   }
   swipe=null;
 });
@@ -937,6 +1000,51 @@ document.addEventListener("visibilitychange",()=>{
     state="playing";last=performance.now();raf=requestAnimationFrame(loop);
   }
 });
+
+
+// Player designer with live preview and local save.
+const preview=$("preview"),pctx=preview.getContext("2d");
+function readLook(){
+  playerLook={kit:$("kitColor").value,shorts:$("shortColor").value,skin:$("skinColor").value,
+    hairColor:$("hairColor").value,hairStyle:Number($("hairStyle").value),number:Number($("playerNumber").value)};
+  $("numberReadout").textContent=playerLook.number;
+}
+function drawPreview(){
+  readLook();const pw=preview.width,ph=preview.height,x=pw/2,y=ph/2+8,r=29;
+  pctx.clearRect(0,0,pw,ph);pctx.fillStyle="#177653";pctx.fillRect(0,0,pw,ph);
+  pctx.strokeStyle="#ffffff55";pctx.lineWidth=2;pctx.strokeRect(10,10,pw-20,ph-20);
+  pctx.beginPath();pctx.moveTo(pw/2,10);pctx.lineTo(pw/2,ph-10);pctx.stroke();
+  pctx.beginPath();pctx.arc(pw/2,ph/2,24,0,Math.PI*2);pctx.stroke();
+  pctx.fillStyle="#06142c55";pctx.beginPath();pctx.ellipse(x,y+r*.85,r*.85,r*.28,0,0,Math.PI*2);pctx.fill();
+  pctx.lineCap="round";pctx.lineJoin="round";pctx.strokeStyle=playerLook.skin;pctx.lineWidth=7;
+  pctx.beginPath();pctx.moveTo(x-7,y+9);pctx.lineTo(x-10,y+27);pctx.moveTo(x+7,y+9);pctx.lineTo(x+10,y+27);pctx.stroke();
+  pctx.strokeStyle=playerLook.kit;pctx.lineWidth=6;pctx.beginPath();pctx.moveTo(x-10,y+20);pctx.lineTo(x-10,y+28);pctx.moveTo(x+10,y+20);pctx.lineTo(x+10,y+28);pctx.stroke();
+  pctx.strokeStyle="#191827";pctx.lineWidth=7;pctx.beginPath();pctx.moveTo(x-10,y+28);pctx.lineTo(x-17,y+29);pctx.moveTo(x+10,y+28);pctx.lineTo(x+17,y+29);pctx.stroke();
+  pctx.strokeStyle=playerLook.skin;pctx.lineWidth=7;pctx.beginPath();pctx.moveTo(x-11,y-18);pctx.lineTo(x-20,y-3);pctx.moveTo(x+11,y-18);pctx.lineTo(x+20,y-3);pctx.stroke();
+  pctx.fillStyle=playerLook.kit;pctx.beginPath();pctx.moveTo(x-10,y-22);pctx.lineTo(x-17,y-17);pctx.lineTo(x-13,y-3);pctx.lineTo(x-8,y-5);pctx.lineTo(x-7,y+10);pctx.lineTo(x+7,y+10);pctx.lineTo(x+8,y-5);pctx.lineTo(x+13,y-3);pctx.lineTo(x+17,y-17);pctx.lineTo(x+10,y-22);pctx.closePath();pctx.fill();
+  pctx.fillStyle=playerLook.shorts;pctx.fillRect(x-8,y+8,16,9);
+  pctx.fillStyle=playerLook.skin;pctx.fillRect(x-4,y-29,8,9);pctx.beginPath();pctx.ellipse(x,y-39,12,14,0,0,Math.PI*2);pctx.fill();
+  pctx.fillStyle=playerLook.hairColor;
+  if(playerLook.hairStyle===1){pctx.beginPath();pctx.ellipse(x,y-46,12,7,0,Math.PI,Math.PI*2);pctx.fill();pctx.fillRect(x-11,y-45,5,9)}
+  else if(playerLook.hairStyle===2){for(let i=-2;i<=2;i++){pctx.beginPath();pctx.arc(x+i*5,y-50+(Math.abs(i)%2)*-2,5,0,Math.PI*2);pctx.fill()}}
+  else{pctx.beginPath();pctx.arc(x,y-43,12,Math.PI,Math.PI*2);pctx.fill()}
+  pctx.fillStyle="#201925";pctx.beginPath();pctx.arc(x-4,y-39,1.5,0,Math.PI*2);pctx.arc(x+4,y-39,1.5,0,Math.PI*2);pctx.fill();
+  pctx.fillStyle="#14506a";pctx.font="900 11px system-ui";pctx.textAlign="center";pctx.textBaseline="middle";pctx.fillText(String(playerLook.number),x,y+1);
+  pctx.fillStyle="#fff";pctx.font="900 10px system-ui";pctx.fillText("YOUR PLAYER",pw/2,ph-17);
+}
+function loadDesigner(){
+  $("kitColor").value=playerLook.kit;$("shortColor").value=playerLook.shorts;$("skinColor").value=playerLook.skin;
+  $("hairColor").value=playerLook.hairColor;$("hairStyle").value=String(playerLook.hairStyle);$("playerNumber").value=String(playerLook.number);drawPreview();
+}
+function saveDesigner(){
+  drawPreview();try{localStorage.setItem("pocket-football-player-look",JSON.stringify(playerLook))}catch(e){}
+  players.filter(p=>p.user).forEach(p=>{p.customKit=playerLook.kit;p.customShorts=playerLook.shorts;p.skinTone=playerLook.skin;p.customHair=playerLook.hairColor;p.customHairStyle=playerLook.hairStyle;p.customNumber=playerLook.number});
+}
+$("designOpen").addEventListener("click",()=>{loadDesigner();$("title").classList.remove("active");$("designer").classList.add("active")});
+$("designBack").addEventListener("click",()=>{$("designer").classList.remove("active");$("title").classList.add("active")});
+$("designDone").addEventListener("click",()=>{saveDesigner();$("designer").classList.remove("active");$("title").classList.add("active")});
+$("designReset").addEventListener("click",()=>{playerLook={kit:"#55edff",shorts:"#1476a2",skin:"#f1c59d",hairColor:"#302018",hairStyle:0,number:10};loadDesigner()});
+["kitColor","shortColor","skinColor","hairColor","hairStyle","playerNumber"].forEach(id=>{$(id).addEventListener("input",drawPreview);$(id).addEventListener("change",drawPreview)});
 
 // Initial screen: show the actual pitch and footballers behind the title.
 resize();
