@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -78,7 +77,7 @@ input:focus { border-color:var(--lime) }
     <div id="phase">FIRST HALF</div>
   </div>
 
-  <div id="hint" hidden>TAP TO MOVE · SWIPE TO PASS OR SHOOT</div>
+  <div id="hint" hidden>TAP TO MOVE · WIN THE BALL · SHOOT BUTTON TO SHOOT</div>
   <div id="controls" hidden>
     <button class="action" id="pass">↗ PASS</button>
     <button class="action shoot" id="shoot">⚡ SHOOT</button>
@@ -195,7 +194,9 @@ function setupPlayers() {
     makePlayer("away",false,f.cx+W*.28,f.cy-65,0),
     makePlayer("away",false,f.cx+W*.28,f.cy+65,1),
     makePlayer("away",false,f.cx+W*.20,f.cy,2),
-    makePlayer("away",false,f.cx+W*.38,f.cy+30,3)
+    makePlayer("away",false,f.cx+W*.38,f.cy+30,3),
+    {...makePlayer("home",false,f.left+W*.035,f.cy,4),keeper:true},
+    {...makePlayer("away",false,f.right-W*.035,f.cy,5),keeper:true}
   ];
   ball={x:f.cx,y:f.cy,vx:0,vy:0,r:Math.max(5,W*.013),owner:-1,spin:0};
   selected=0;particles=[];
@@ -323,7 +324,13 @@ function act(kind,angle=null,power=1) {
   }
 
   const distance=Math.hypot(p.x-ball.x,p.y-ball.y);
-  if(distance>p.r+ball.r+35&&ball.owner!==players.indexOf(p)) {
+  const ownsBall=ball.owner===players.indexOf(p);
+  if((kind==="shoot"||kind==="pass")&&!ownsBall) {
+    p.tx=ball.x;p.ty=ball.y;
+    announce("WIN THE BALL FIRST!");
+    return;
+  }
+  if(distance>p.r+ball.r+35&&!ownsBall) {
     if(kind==="move"&&angle!==null) {
       p.tx=p.x+Math.cos(angle)*W*.22;
       p.ty=p.y+Math.sin(angle)*W*.22;
@@ -413,7 +420,13 @@ function update(dt) {
 
   // Move every player and make the two teams react to the ball.
   players.forEach((p,i)=>{
-    if(p.user) {
+    if(p.keeper) {
+      const homeKeeper=p.team==="home";
+      const gx=homeKeeper?f.left+W*.035:f.right-W*.035;
+      const range=Math.min(76,(f.bottom-f.top)*.30)/2;
+      const gy=Math.max(f.cy-range+ p.r,Math.min(f.cy+range-p.r,ball.y));
+      moveTo(p,gx,gy,dt,p.speed*.72);
+    } else if(p.user) {
       if(ball.owner===i) {
         // The player dribbles toward the opponents' goal.
         p.tx+=W*.12*dt;
@@ -502,12 +515,13 @@ function update(dt) {
     carrier.tx=f.left+W*.11;
     carrier.ty=f.cy+(carrier.y-f.cy)*.35;
 
-    const nearGoal=carrier.x<f.left+W*.46;
-    const shotReady=performance.now()-lastAIShoot>1250;
+    const nearGoal=carrier.x<f.left+W*.22;
+    const shotReady=performance.now()-lastAIShoot>2400;
 
     if(nearGoal&&shotReady) {
       lastAIShoot=performance.now();
-      kickToward(f.left-25,f.cy+(f.cy-carrier.y)*.35,W*(.92+.17*difficulty));
+      const aimY=f.cy+(f.cy-carrier.y)*.30+(Math.random()-.5)*Math.min(52,H*.10);
+      kickToward(f.left-25,aimY,W*(.78+.10*difficulty));
       kickSound();
       announce("RIVALS SHOOT!");
     } else if(Math.random()<dt*.10*difficulty) {
@@ -530,8 +544,21 @@ function update(dt) {
     if(nearest>=0&&min<players[nearest].r+ball.r+5)ball.owner=nearest;
   }
 
-  // Pitch boundaries and goal mouths.
+  // Goalkeepers can block shots before they cross the line.
   const gh=Math.min(76,(f.bottom-f.top)*.30);
+  if(ball.owner<0 && Math.abs(ball.y-f.cy)<gh/2+ball.r) {
+    const homeKeeper=players.find(p=>p.keeper&&p.team==="home");
+    const awayKeeper=players.find(p=>p.keeper&&p.team==="away");
+    if(ball.vx<0 && ball.x<f.left+W*.075 && homeKeeper &&
+       Math.abs(ball.y-homeKeeper.y)<homeKeeper.r+ball.r+8) {
+      ball.x=f.left+W*.075;ball.vx=Math.abs(ball.vx)*.72;ball.vy+=(Math.random()-.5)*W*.35;
+      announce("SAVE!");
+    } else if(ball.vx>0 && ball.x>f.right-W*.075 && awayKeeper &&
+       Math.abs(ball.y-awayKeeper.y)<awayKeeper.r+ball.r+8) {
+      ball.x=f.right-W*.075;ball.vx=-Math.abs(ball.vx)*.72;ball.vy+=(Math.random()-.5)*W*.35;
+      announce("SAVE!");
+    }
+  }
   if(ball.y<f.top+ball.r){ball.y=f.top+ball.r;ball.vy=Math.abs(ball.vy)*.8}
   if(ball.y>f.bottom-ball.r){ball.y=f.bottom-ball.r;ball.vy=-Math.abs(ball.vy)*.8}
 
@@ -871,9 +898,8 @@ canvas.addEventListener("pointerup",e=>{
     } else {
       act("move",angle);
     }
-  } else if(Math.hypot(p.x-ball.x,p.y-ball.y)<p.r+ball.r+35) {
-    act("shoot");
   } else {
+    // A tap moves the selected player; use the SHOOT button to attempt a shot.
     p.tx=x;p.ty=y;clampTarget(p);
   }
   swipe=null;
