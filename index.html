@@ -25,8 +25,9 @@ canvas { position:absolute;inset:0;width:100%;height:100%;touch-action:none;disp
 .homeLabel { color:var(--cyan) }.awayLabel { color:var(--pink) }
 #phase { text-align:center;color:var(--lime);font-size:10px;font-weight:900;letter-spacing:2px }
 #controls { position:absolute;z-index:3;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);display:flex;justify-content:center;gap:8px;padding:0 7px;pointer-events:none }
-.action { pointer-events:auto;flex:1;max-width:125px;min-width:0;padding:13px 5px;border:1px solid #ffffff50;border-radius:13px;background:#11162ded;color:white;font-size:11px;font-weight:1000;box-shadow:0 4px 0 #080b18;touch-action:manipulation }
+.action { pointer-events:auto;flex:1;max-width:112px;min-width:0;padding:12px 3px;border:1px solid #ffffff50;border-radius:13px;background:#11162ded;color:white;font-size:10px;font-weight:1000;box-shadow:0 4px 0 #080b18;touch-action:manipulation;user-select:none;-webkit-user-select:none }
 .action.shoot { background:var(--lime);color:var(--bg);border-color:var(--lime) }
+.action.tackle { background:#ff6b78;color:#241018;border-color:#ff6b78 }
 .action:active,.primary:active { transform:scale(.96) }
 #hint { position:absolute;z-index:2;bottom:calc(env(safe-area-inset-bottom,0px) + 67px);left:0;right:0;text-align:center;font-size:9px;letter-spacing:1px;font-weight:900;color:#ffffffc9;text-shadow:0 2px 5px #000;pointer-events:none }
 .screen { position:absolute;inset:0;z-index:5;display:none;align-items:center;justify-content:center;flex-direction:column;padding:22px;text-align:center;background:radial-gradient(ellipse at 50% 35%,#354582,#11162d 70%);overflow:auto }
@@ -40,6 +41,9 @@ p { color:#c8d0f0;font-size:14px;line-height:1.6;max-width:310px }
 label { margin:12px 0 7px;color:#c8d0f0;font-size:11px;font-weight:900;letter-spacing:2px }
 input { width:min(100%,300px);padding:14px;border-radius:12px;border:1px solid #58628e;background:#171f41;color:white;font-size:16px;text-align:center;outline:none;user-select:text }
 input:focus { border-color:var(--lime) }
+.team-picks { width:min(100%,340px);display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:8px;text-align:left }
+.team-picks label { display:block;margin:3px 0 6px;font-size:9px;letter-spacing:1px }
+.team-picks select { width:100%;min-width:0;padding:11px 7px;border-radius:10px;border:1px solid #58628e;background:#171f41;color:#fff;font-size:12px;font-weight:800 }
 .primary { width:min(100%,300px);padding:15px;border:0;border-radius:13px;margin-top:13px;background:var(--lime);color:var(--bg);font-size:16px;font-weight:1000;letter-spacing:1px;box-shadow:0 5px 0 #94b52b }
 .best { margin-top:19px;color:#abb7e1;font-size:11px;letter-spacing:1px;line-height:1.8 }
 .best strong { display:block;color:var(--lime);font-size:20px }
@@ -97,6 +101,7 @@ input:focus { border-color:var(--lime) }
   <div id="controls" hidden>
     <button class="action" id="pass">↗ PASS</button>
     <button class="action shoot" id="shoot">⚡ SHOOT</button>
+    <button class="action tackle" id="tackle">🛡 TACKLE</button>
     <button class="action" id="switch">⇄ SWITCH</button>
   </div>
   <div id="notice"></div>
@@ -108,6 +113,10 @@ input:focus { border-color:var(--lime) }
     <p>One minute. Two goals. One legend.<br>Beat the rivals. Defend your goal.</p>
     <label for="name">YOUR FIRST NAME</label>
     <input id="name" maxlength="18" placeholder="Enter your name" autocomplete="given-name">
+    <div class="team-picks">
+      <div><label for="homeTeamSelect">YOUR TEAM</label><select id="homeTeamSelect"></select></div>
+      <div><label for="awayTeamSelect">OPPONENT</label><select id="awayTeamSelect"></select></div>
+    </div>
     <button class="primary" id="play">▶ KICK OFF</button>
     <button class="primary" id="designOpen" style="margin-top:9px;background:#55edff;box-shadow:0 5px 0 #218b9b">✦ DESIGN YOUR PLAYERS</button>
     <div class="best">PERSONAL BEST<strong id="best">0 goals</strong></div>
@@ -123,7 +132,7 @@ input:focus { border-color:var(--lime) }
       <div class="des-control"><label for="shortColor">SHORTS</label><input id="shortColor" type="color" value="#1476a2"></div>
       <div class="des-control"><label for="skinColor">SKIN TONE</label><select id="skinColor"><option value="#f1c59d">Light</option><option value="#c98b64">Medium</option><option value="#8d563c">Deep</option><option value="#e1ad83">Warm</option></select></div>
       <div class="des-control"><label for="hairColor">HAIR COLOUR</label><select id="hairColor"><option value="#302018">Dark brown</option><option value="#70452b">Brown</option><option value="#d4a64c">Blond</option><option value="#171923">Black</option><option value="#b84d32">Auburn</option></select></div>
-      <div class="des-control"><label for="hairStyle">HAIRCUT</label><select id="hairStyle"><option value="0">Classic</option><option value="1">Fringe</option><option value="2">Curly</option></select></div>
+      <div class="des-control"><label for="hairStyle">HAIRCUT</label><select id="hairStyle"><option value="0">Classic</option><option value="1">Fringe</option><option value="2">Curly</option><option value="3">Buzz cut</option><option value="4">Mohawk</option><option value="5">Long hair</option><option value="6">Side part</option><option value="7">Ponytail</option></select></div>
       <div class="des-control"><label for="playerNumber">SHIRT NUMBER</label><input id="playerNumber" type="range" min="1" max="99" value="10"><div style="text-align:center;font-weight:900;color:var(--lime)" id="numberReadout">10</div></div>
     </div>
     <div class="des-actions"><button class="primary" id="designReset" style="margin-top:0;background:#fff;box-shadow:0 5px 0 #9ba2b8">RESET</button><button class="primary" id="designDone" style="margin-top:0">SAVE &amp; PLAY</button></div>
@@ -149,6 +158,47 @@ const C = {
   cyan:"#55edff", pink:"#ff568d", lime:"#d9ff55",
   skin:"#dca47c", ink:"#11162d"
 };
+
+const TEAM_OPTIONS = [
+  {name:"Arsenal",kit:"#ef0107",shorts:"#ffffff"},
+  {name:"Barcelona",kit:"#a50044",shorts:"#004d98"},
+  {name:"Real Madrid",kit:"#f7f7f7",shorts:"#ffffff"},
+  {name:"Manchester City",kit:"#6caddf",shorts:"#ffffff"},
+  {name:"Liverpool",kit:"#c8102e",shorts:"#c8102e"},
+  {name:"Chelsea",kit:"#034694",shorts:"#034694"},
+  {name:"Manchester United",kit:"#da291c",shorts:"#ffffff"},
+  {name:"Paris Saint-Germain",kit:"#004170",shorts:"#e30613"},
+  {name:"Bayern Munich",kit:"#dc052d",shorts:"#dc052d"},
+  {name:"Juventus",kit:"#f5f5f5",shorts:"#111111"},
+  {name:"Inter Milan",kit:"#0068a8",shorts:"#111111"},
+  {name:"AC Milan",kit:"#fb090b",shorts:"#111111"},
+  {name:"Tottenham",kit:"#ffffff",shorts:"#111111"},
+  {name:"Borussia Dortmund",kit:"#fdeb00",shorts:"#111111"},
+  {name:"Celtic",kit:"#ffffff",shorts:"#008a45"},
+  {name:"Republic of Ireland",kit:"#169b62",shorts:"#ffffff"}
+];
+let selectedHomeTeam=TEAM_OPTIONS[3], selectedAwayTeam=TEAM_OPTIONS[0];
+function applyTeams(){
+  const h=TEAM_OPTIONS.find(t=>t.name===$("homeTeamSelect").value)||TEAM_OPTIONS[3];
+  const a=TEAM_OPTIONS.find(t=>t.name===$("awayTeamSelect").value)||TEAM_OPTIONS[0];
+  selectedHomeTeam=h;selectedAwayTeam=a;
+  document.querySelectorAll(".homeLabel").forEach(el=>{el.textContent=h.name.toUpperCase();el.style.color=h.kit==="#ffffff"||h.kit==="#f7f7f7"?"#ffffff":h.kit});
+  document.querySelectorAll(".awayLabel").forEach(el=>{el.textContent=a.name.toUpperCase();el.style.color=a.kit==="#ffffff"||a.kit==="#f7f7f7"?"#ffffff":a.kit});
+  // The selected club sets the starting design; the Player Lab can still customize it.
+  playerLook.kit=h.kit;playerLook.shorts=h.shorts;
+  if($("kitColor")){$("kitColor").value=h.kit;$("shortColor").value=h.shorts;drawPreview()}
+  if(players.length)draw();
+}
+function initTeamChoices(){
+  for(const id of ["homeTeamSelect","awayTeamSelect"]){
+    const sel=$(id);
+    TEAM_OPTIONS.forEach(t=>{const opt=document.createElement("option");opt.value=t.name;opt.textContent=t.name;sel.appendChild(opt)});
+  }
+  $("homeTeamSelect").value=selectedHomeTeam.name;
+  $("awayTeamSelect").value=selectedAwayTeam.name;
+  $("homeTeamSelect").addEventListener("change",applyTeams);
+  $("awayTeamSelect").addEventListener("change",applyTeams);
+}
 
 let W=0,H=0,DPR=1;
 let state="title", raf=0,last=0;
@@ -358,6 +408,33 @@ function act(kind,angle=null,power=1) {
   enableSound();
   const p=selectedPlayer();
   if(!p)return;
+
+  // Dedicated tackle button: press to close down the carrier, or win the ball
+  // immediately when close enough. This works even when the user does not own the ball.
+  if(kind==="tackle") {
+    const carrier=ball.owner>=0?players[ball.owner]:null;
+    if(carrier&&carrier.team==="away") {
+      const d=Math.hypot(p.x-carrier.x,p.y-carrier.y);
+      if(d<=p.r+carrier.r+32) {
+        const oldOwner=ball.owner;
+        ball.owner=players.indexOf(p);
+        ball.vx=0;ball.vy=0;
+        p.tx=p.x;p.ty=p.y;
+        sound(260,.08,"triangle",.05);
+        announce("BALL!");
+      } else {
+        // Run directly at the opponent with the ball; press TACKLE again when close.
+        p.tx=carrier.x;p.ty=carrier.y;
+        clampTarget(p);
+        sound(190,.04,"triangle",.025);
+      }
+    } else {
+      // No rival carrier yet: send the selected player to challenge for the loose ball.
+      p.tx=ball.x;p.ty=ball.y;
+      clampTarget(p);
+    }
+    return;
+  }
 
   if(kind==="switch") {
     selected=(selected+1)%2;
@@ -699,8 +776,8 @@ function drawPlayer(p) {
   ctx.translate(p.x,p.y);
 
   const homeTeam=p.team==="home";
-  const kit=p.customKit||(homeTeam?C.cyan:C.pink);
-  const shorts=p.customShorts||(homeTeam?"#1476a2":"#a51e57");
+  const kit=p.customKit||(homeTeam?selectedHomeTeam.kit:selectedAwayTeam.kit);
+  const shorts=p.customShorts||(homeTeam?selectedHomeTeam.shorts:selectedAwayTeam.shorts);
   const skin=p.skinTone;
   const hairStyle=p.customHairStyle??p.hair;
   const r=p.r;
@@ -814,6 +891,16 @@ function drawPlayer(p) {
   ctx.lineTo(-r*.36,r*.51);
   ctx.closePath();
   ctx.fill();
+  // Make the shorts read clearly as a separate piece of kit.
+  ctx.strokeStyle="#ffffffb8";
+  ctx.lineWidth=Math.max(.8,r*.045);
+  ctx.beginPath();
+  ctx.moveTo(-r*.34,r*.30);ctx.lineTo(r*.34,r*.30);
+  ctx.moveTo(0,r*.32);ctx.lineTo(0,r*.47);
+  ctx.stroke();
+  ctx.fillStyle="#ffffff70";
+  ctx.fillRect(-r*.34,r*.46,r*.10,r*.035);
+  ctx.fillRect(r*.24,r*.46,r*.10,r*.035);
 
   // Neck and ears.
   ctx.fillStyle=skin;
@@ -843,7 +930,7 @@ function drawPlayer(p) {
     ctx.ellipse(0,-r*.93,r*.30,r*.19,0,Math.PI,Math.PI*2);
     ctx.fill();
     ctx.fillRect(-r*.29,-r*.91,r*.12,r*.18);
-  } else {
+  } else if(hairStyle===2) {
     ctx.beginPath();
     ctx.arc(0,-r*.82,r*.31,Math.PI,Math.PI*2);
     ctx.fill();
@@ -852,6 +939,21 @@ function drawPlayer(p) {
     ctx.arc(r*.05,-r*1.01,r*.12,0,Math.PI*2);
     ctx.arc(r*.21,-r*.96,r*.10,0,Math.PI*2);
     ctx.fill();
+  } else if(hairStyle===3) { // Buzz cut
+    ctx.beginPath();ctx.ellipse(0,-r*.88,r*.29,r*.16,0,Math.PI,Math.PI*2);ctx.fill();
+  } else if(hairStyle===4) { // Mohawk
+    ctx.beginPath();ctx.moveTo(-r*.10,-r*.78);ctx.lineTo(-r*.09,-r*1.10);ctx.lineTo(0,-r*1.16);ctx.lineTo(r*.10,-r*1.08);ctx.lineTo(r*.11,-r*.78);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.arc(0,-r*.84,r*.29,Math.PI,Math.PI*2);ctx.fill();
+  } else if(hairStyle===5) { // Long hair
+    ctx.beginPath();ctx.arc(0,-r*.85,r*.31,Math.PI,Math.PI*2);ctx.fill();
+    ctx.fillRect(-r*.30,-r*.88,r*.10,r*.42);ctx.fillRect(r*.20,-r*.88,r*.10,r*.42);
+  } else if(hairStyle===6) { // Side part
+    ctx.beginPath();ctx.arc(0,-r*.85,r*.30,Math.PI,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.moveTo(-r*.28,-r*.88);ctx.quadraticCurveTo(-r*.02,-r*1.08,r*.27,-r*.90);ctx.lineTo(r*.16,-r*.83);ctx.lineTo(-r*.28,-r*.82);ctx.closePath();ctx.fill();
+  } else { // Ponytail
+    ctx.beginPath();ctx.arc(0,-r*.85,r*.30,Math.PI,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(r*.29,-r*.76,r*.10,r*.22,-.3,0,Math.PI*2);ctx.fill();
+    ctx.fillRect(-r*.29,-r*.85,r*.09,r*.28);
   }
 
   // Eyes and smile.
@@ -971,6 +1073,7 @@ canvas.addEventListener("pointercancel",()=>swipe=null);
 
 $("pass").addEventListener("pointerdown",e=>{e.preventDefault();act("pass")});
 $("shoot").addEventListener("pointerdown",e=>{e.preventDefault();act("shoot")});
+$("tackle").addEventListener("pointerdown",e=>{e.preventDefault();act("tackle")});
 $("switch").addEventListener("pointerdown",e=>{e.preventDefault();act("switch")});
 $("play").addEventListener("click",startGame);
 
@@ -989,6 +1092,7 @@ window.addEventListener("keydown",e=>{
   if(["ArrowRight","d","D"].includes(e.key))p.tx+=s;
   if([" ","x","X"].includes(e.key))act("shoot");
   if(["z","Z"].includes(e.key))act("pass");
+  if(["c","C"].includes(e.key))act("tackle");
   if(e.key==="Tab"){e.preventDefault();act("switch")}
   clampTarget(p);
 });
@@ -1022,11 +1126,17 @@ function drawPreview(){
   pctx.strokeStyle="#191827";pctx.lineWidth=7;pctx.beginPath();pctx.moveTo(x-10,y+28);pctx.lineTo(x-17,y+29);pctx.moveTo(x+10,y+28);pctx.lineTo(x+17,y+29);pctx.stroke();
   pctx.strokeStyle=playerLook.skin;pctx.lineWidth=7;pctx.beginPath();pctx.moveTo(x-11,y-18);pctx.lineTo(x-20,y-3);pctx.moveTo(x+11,y-18);pctx.lineTo(x+20,y-3);pctx.stroke();
   pctx.fillStyle=playerLook.kit;pctx.beginPath();pctx.moveTo(x-10,y-22);pctx.lineTo(x-17,y-17);pctx.lineTo(x-13,y-3);pctx.lineTo(x-8,y-5);pctx.lineTo(x-7,y+10);pctx.lineTo(x+7,y+10);pctx.lineTo(x+8,y-5);pctx.lineTo(x+13,y-3);pctx.lineTo(x+17,y-17);pctx.lineTo(x+10,y-22);pctx.closePath();pctx.fill();
-  pctx.fillStyle=playerLook.shorts;pctx.fillRect(x-8,y+8,16,9);
+  pctx.fillStyle=playerLook.shorts;pctx.beginPath();pctx.moveTo(x-9,y+7);pctx.lineTo(x+9,y+7);pctx.lineTo(x+9,y+18);pctx.lineTo(x+2,y+19);pctx.lineTo(x,y+15);pctx.lineTo(x-2,y+19);pctx.lineTo(x-9,y+18);pctx.closePath();pctx.fill();
+  pctx.strokeStyle="#ffffffbb";pctx.lineWidth=1;pctx.beginPath();pctx.moveTo(x-8,y+9);pctx.lineTo(x+8,y+9);pctx.moveTo(x,y+10);pctx.lineTo(x,y+16);pctx.stroke();
   pctx.fillStyle=playerLook.skin;pctx.fillRect(x-4,y-29,8,9);pctx.beginPath();pctx.ellipse(x,y-39,12,14,0,0,Math.PI*2);pctx.fill();
   pctx.fillStyle=playerLook.hairColor;
   if(playerLook.hairStyle===1){pctx.beginPath();pctx.ellipse(x,y-46,12,7,0,Math.PI,Math.PI*2);pctx.fill();pctx.fillRect(x-11,y-45,5,9)}
   else if(playerLook.hairStyle===2){for(let i=-2;i<=2;i++){pctx.beginPath();pctx.arc(x+i*5,y-50+(Math.abs(i)%2)*-2,5,0,Math.PI*2);pctx.fill()}}
+  else if(playerLook.hairStyle===3){pctx.beginPath();pctx.ellipse(x,y-43,12,5,0,Math.PI,Math.PI*2);pctx.fill()}
+  else if(playerLook.hairStyle===4){pctx.beginPath();pctx.arc(x,y-43,12,Math.PI,Math.PI*2);pctx.fill();pctx.beginPath();pctx.moveTo(x-4,y-44);pctx.lineTo(x-3,y-55);pctx.lineTo(x,y-60);pctx.lineTo(x+4,y-54);pctx.lineTo(x+4,y-44);pctx.fill()}
+  else if(playerLook.hairStyle===5){pctx.beginPath();pctx.arc(x,y-43,12,Math.PI,Math.PI*2);pctx.fill();pctx.fillRect(x-12,y-44,4,23);pctx.fillRect(x+8,y-44,4,23)}
+  else if(playerLook.hairStyle===6){pctx.beginPath();pctx.arc(x,y-43,12,Math.PI,Math.PI*2);pctx.fill();pctx.beginPath();pctx.moveTo(x-11,y-44);pctx.quadraticCurveTo(x,y-57,x+11,y-45);pctx.lineTo(x+6,y-42);pctx.lineTo(x-11,y-42);pctx.fill()}
+  else if(playerLook.hairStyle===7){pctx.beginPath();pctx.arc(x,y-43,12,Math.PI,Math.PI*2);pctx.fill();pctx.beginPath();pctx.ellipse(x+12,y-37,4,8,-.3,0,Math.PI*2);pctx.fill()}
   else{pctx.beginPath();pctx.arc(x,y-43,12,Math.PI,Math.PI*2);pctx.fill()}
   pctx.fillStyle="#201925";pctx.beginPath();pctx.arc(x-4,y-39,1.5,0,Math.PI*2);pctx.arc(x+4,y-39,1.5,0,Math.PI*2);pctx.fill();
   pctx.fillStyle="#14506a";pctx.font="900 11px system-ui";pctx.textAlign="center";pctx.textBaseline="middle";pctx.fillText(String(playerLook.number),x,y+1);
@@ -1047,6 +1157,7 @@ $("designReset").addEventListener("click",()=>{playerLook={kit:"#55edff",shorts:
 ["kitColor","shortColor","skinColor","hairColor","hairStyle","playerNumber"].forEach(id=>{$(id).addEventListener("input",drawPreview);$(id).addEventListener("change",drawPreview)});
 
 // Initial screen: show the actual pitch and footballers behind the title.
+initTeamChoices();applyTeams();
 resize();
 setupPlayers();
 draw();
