@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#11162d">
-<title>Pocket Football — Turbo Cup</title>
+<title>Pocket Football — Better Gameplay</title>
 <style>
 :root {
   --bg:#11162d; --lime:#d9ff55; --cyan:#55edff;
@@ -536,48 +536,75 @@ function update(dt) {
 
   let carrier=ball.owner>=0?players[ball.owner]:null;
 
-  // Move every player and make the two teams react to the ball.
+  // Keep team shape: only the nearest defender presses, while teammates spread into lanes.
+  const outfield = players.filter(p=>!p.keeper);
+  const nearestTo = (team,x,y) => outfield
+    .filter(p=>p.team===team)
+    .sort((a,b)=>Math.hypot(a.x-x,a.y-y)-Math.hypot(b.x-x,b.y-y))[0];
+  const homePress = carrier&&carrier.team==="away" ? nearestTo("home",carrier.x,carrier.y) : null;
+  const awayPress = carrier&&carrier.team==="home" ? nearestTo("away",carrier.x,carrier.y) : null;
+  const looseHome = !carrier ? nearestTo("home",ball.x,ball.y) : null;
+  const looseAway = !carrier ? nearestTo("away",ball.x,ball.y) : null;
+
   players.forEach((p,i)=>{
     if(p.keeper) {
       const homeKeeper=p.team==="home";
       const gx=homeKeeper?f.left+W*.035:f.right-W*.035;
       const range=Math.min(76,(f.bottom-f.top)*.30)/2;
-      const gy=Math.max(f.cy-range+ p.r,Math.min(f.cy+range-p.r,ball.y));
-      moveTo(p,gx,gy,dt,p.speed*.72);
-    } else if(p.user) {
+      const gy=Math.max(f.cy-range+p.r,Math.min(f.cy+range-p.r,ball.y));
+      moveTo(p,gx,gy,dt,p.speed*.68);
+      return;
+    }
+
+    if(p.user) {
       if(ball.owner===i) {
-        // The player dribbles toward the opponents' goal.
-        p.tx+=W*.12*dt;
+        // Dribble forward, but keep a deliberate target rather than snapping across the pitch.
+        p.tx=Math.max(p.tx, p.x+W*.08*dt);
+        p.ty += (f.cy-p.y)*Math.min(1,dt*.55);
         clampTarget(p);
       } else if(!carrier) {
-        // Chase a loose ball decisively so the player can collect it.
         p.tx=ball.x;p.ty=ball.y;
-      } else if(carrier.team==="away") {
-        // Press the opponent carrying the ball.
-        p.tx=carrier.x;p.ty=carrier.y;
+      } else if(carrier.team!=="home") {
+        // The selected player presses; the second user player stays available as cover.
+        if(p===selectedPlayer()) { p.tx=carrier.x;p.ty=carrier.y; }
+        else { p.tx=f.cx-W*.13;p.ty=f.cy+(selected===0?45:-45); }
+      } else {
+        // Move into a passing lane instead of crowding the teammate with the ball.
+        p.tx=Math.min(f.right-W*.12,carrier.x+W*.16);
+        p.ty=Math.max(f.top+35,Math.min(f.bottom-35,f.cy+(p===selectedPlayer()?48:-48)));
       }
       moveTo(p,p.tx,p.ty,dt,p.speed);
-    } else if(p.team==="home") {
-      // Teammates provide support and help recover possession.
-      let tx=p.x+(ball.x-f.cx)*.14;
-      let ty=p.y+(ball.y-f.cy)*.16;
-      if(carrier&&carrier.team==="away") {
-        tx=ball.x-W*.025;
-        ty=ball.y+(p.n%2?16:-16);
+      return;
+    }
+
+    if(p.team==="home") {
+      let tx=f.cx-W*.20, ty=f.cy+(p.n===2?-Math.min(72,H*.14):Math.min(72,H*.14));
+      if(carrier&&carrier.team==="home") {
+        // Stay wide and ahead of the carrier to create a passing option.
+        tx=Math.min(f.right-W*.09,carrier.x+W*.14);
+        ty=Math.max(f.top+30,Math.min(f.bottom-30,f.cy+(p.n===2?-Math.min(85,H*.17):Math.min(85,H*.17))));
+      } else if(carrier&&carrier.team==="away") {
+        if(p===homePress) { tx=carrier.x;ty=carrier.y; }
+        else { tx=f.cx-W*.18;ty=f.cy+(p.n===2?-Math.min(65,H*.13):Math.min(65,H*.13)); }
       } else if(!carrier) {
-        tx=ball.x-W*.06;
-        ty=ball.y+(p.n%2?24:-24);
+        if(p===looseHome) { tx=ball.x;ty=ball.y; }
+        else { tx=f.cx-W*.12;ty=f.cy+(p.n===2?-Math.min(82,H*.16):Math.min(82,H*.16)); }
       }
-      moveTo(p,tx,ty,dt,p.speed*.83);
+      moveTo(p,tx,ty,dt,p.speed*.78);
     } else {
-      // All rivals actively close down the ball, not just stand in formation.
-      let tx=ball.x+W*.025;
-      let ty=ball.y+(p.n%3-1)*Math.min(23,H*.04);
+      let tx=f.cx+W*.20, ty=f.cy+(p.n%2?-Math.min(75,H*.15):Math.min(75,H*.15));
       if(carrier&&carrier.team==="away") {
-        tx=f.left+W*.12;
-        ty=f.cy+(p.n%3-1)*28;
+        // Attackers fan out instead of standing on top of their ball carrier.
+        tx=Math.max(f.left+W*.09,carrier.x-W*(p.n===2?.10:.17));
+        ty=Math.max(f.top+30,Math.min(f.bottom-30,f.cy+(p.n%2?-Math.min(88,H*.17):Math.min(88,H*.17))));
+      } else if(carrier&&carrier.team==="home") {
+        if(p===awayPress) { tx=carrier.x;ty=carrier.y; }
+        else { tx=f.cx+W*.16;ty=f.cy+(p.n%2?-Math.min(68,H*.14):Math.min(68,H*.14)); }
+      } else if(!carrier) {
+        if(p===looseAway) { tx=ball.x;ty=ball.y; }
+        else { tx=f.cx+W*.16;ty=f.cy+(p.n%2?-Math.min(85,H*.16):Math.min(85,H*.16)); }
       }
-      moveTo(p,tx,ty,dt,p.speed*difficulty);
+      moveTo(p,tx,ty,dt,p.speed*(carrier&&carrier.team==="away"?difficulty*.88:.82));
     }
   });
 
@@ -596,13 +623,13 @@ function update(dt) {
     ball.vy*=Math.pow(.986,dt*60);
 
     // Nearest footballer collects the ball when it slows down.
-    if(Math.hypot(ball.vx,ball.vy)<W*1.8) {
+    if(Math.hypot(ball.vx,ball.vy)<W*.62) {
       let nearest=-1,min=Infinity;
       players.forEach((p,i)=>{
         const d=Math.hypot(p.x-ball.x,p.y-ball.y);
         if(d<min){min=d;nearest=i}
       });
-      if(nearest>=0&&min<players[nearest].r+ball.r+18) {
+      if(nearest>=0&&min<players[nearest].r+ball.r+7) {
         ball.owner=nearest;
       }
     }
@@ -616,7 +643,7 @@ function update(dt) {
       const challenger=players[i];
       if(!challenger.user)continue;
       const d=Math.hypot(challenger.x-carrier.x,challenger.y-carrier.y);
-      if(d<challenger.r+carrier.r+9&&Math.random()<dt*2.8) {
+      if(d<challenger.r+carrier.r+3&&challenger===selectedPlayer()&&Math.random()<dt*.65) {
         ball.owner=i;carrier=challenger;
         announce("BALL!");
         sound(260,.07,"triangle",.045);
@@ -631,7 +658,7 @@ function update(dt) {
       const opponent=players[i];
       if(opponent.team!=="away")continue;
       const d=Math.hypot(opponent.x-carrier.x,opponent.y-carrier.y);
-      if(d<opponent.r+carrier.r+4&&Math.random()<dt*(1.25+.25*difficulty)) {
+      if(d<opponent.r+carrier.r+1&&Math.random()<dt*(.32+.08*difficulty)) {
         ball.owner=i;
         carrier=opponent;
         sound(120,.06,"triangle",.035);
@@ -658,9 +685,10 @@ function update(dt) {
       kickToward(f.left-25,aimY,W*(.78+.10*difficulty));
       kickSound();
       // No extra text for routine opposition shots.
-    } else if(Math.random()<dt*.10*difficulty) {
-      // An occasional pass makes their attacks less predictable.
-      const teammate=rivals.find(q=>q!==carrier&&q.x<carrier.x-W*.035);
+    } else if(Math.random()<dt*.035*difficulty) {
+      // Rare forward passes; keep possession long enough for attacks to develop.
+      const teammate=rivals.filter(q=>q!==carrier&&q.x<carrier.x-W*.07)
+        .sort((a,b)=>Math.hypot(a.x-carrier.x,a.y-carrier.y)-Math.hypot(b.x-carrier.x,b.y-carrier.y))[0];
       if(teammate) {
         kickToward(teammate.x,teammate.y,W*.75);
         kickSound();
@@ -675,7 +703,7 @@ function update(dt) {
       const d=Math.hypot(p.x-ball.x,p.y-ball.y);
       if(d<min){min=d;nearest=i}
     });
-    if(nearest>=0&&min<players[nearest].r+ball.r+5)ball.owner=nearest;
+    if(nearest>=0&&min<players[nearest].r+ball.r+6)ball.owner=nearest;
   }
 
   // Goalkeepers can block shots before they cross the line.
